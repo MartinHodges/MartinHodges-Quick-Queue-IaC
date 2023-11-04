@@ -1,0 +1,64 @@
+---
+
+- hosts: all
+  become: yes
+  pre_tasks:
+
+  - name: install updates (Debian)
+    tags: always
+    apt:
+      upgrade: dist
+      update_cache: yes
+    when: ansible_distribution == "Debian"
+
+  - name: install sudoers for Debian servers
+    tags: debian
+    apt:
+      name:
+        - sudo
+      state: latest
+    when: ansible_distribution == "Debian"
+
+- hosts: all
+  become: true
+  tasks:
+
+  - name: create kates user
+    tags: always
+    user:
+      name: kates
+      groups: root
+      shell: "/bin/bash"
+
+  - name: Set authorized key taken from file
+    authorized_key:
+      user: kates
+      state: present
+      key: "{{ lookup('file', '~/.ssh/qq_rsa.pub') }}"
+
+  - name: add sudoers file for kates
+    tags: always
+    copy:
+      src: sudoer_kates
+      dest: /etc/sudoers.d/kates
+      owner: root
+      group: root
+      mode: 0440
+
+  - name: generate sshd_config file from template
+    tags: ssh
+    vars:
+      ssh_users: kates
+    template:
+      src: "sshd_config.j2"
+      dest: /etc/ssh/sshd_config
+      owner: root
+      group: root
+      mode: 0644
+    notify: restart_sshd
+
+  handlers:
+  - name: restart_sshd
+    service:
+      name: sshd
+      state: restarted
