@@ -1,0 +1,11 @@
+primary:
+  persistence:
+    enabled: true
+    existingClaim: "pg-claim"
+  initdb:
+    scripts:
+      sayHello.sh: |
+        echo "Starting new DB scripts"
+      sayGoodbye.sh: |
+        echo "Starting new DB scripts done"
+
